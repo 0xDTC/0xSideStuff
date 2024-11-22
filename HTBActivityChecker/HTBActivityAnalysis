@@ -38,31 +38,35 @@ ID="$2"
 calculate_max_lengths() {
   local response="$1"
   max_name_length=4
+  max_user_id_length=7
+  max_user_name_length=4
   max_date_diff_length=13
   max_type_length=4
   max_date_length=4
   max_time_length=4
 
   # Iterate through each line to find the longest string for each column
-  while IFS=$'\t' read -r name date_diff type date time; do
+  while IFS=$'\t' read -r name user_id user_name date_diff type date time; do
     (( ${#name} > max_name_length )) && max_name_length=${#name}
+    (( ${#user_id} > max_user_id_length )) && max_user_id_length=${#user_id}
+    (( ${#user_name} > max_user_name_length )) && max_user_name_length=${#user_name}
     (( ${#date_diff} > max_date_diff_length )) && max_date_diff_length=${#date_diff}
     (( ${#type} > max_type_length )) && max_type_length=${#type}
     (( ${#date} > max_date_length )) && max_date_length=${#date}
     (( ${#time} > max_time_length )) && max_time_length=${#time}
-  done < <(echo "$response" | jq -r '.[] | [.name, .date_diff, .type, (.date | split("T")[0]), (.date | split("T")[1] | split(".")[0])] | @tsv')
+  done < <(echo "$response" | jq -r '.[] | [.name, .user.id, .user.name, .date_diff, .type, (.date | split("T")[0]), (.date | split("T")[1] | split(".")[0])] | @tsv')
 }
 
 # Function to print the table header based on the calculated widths
 print_header() {
-  printf "%-${max_name_length}s %-${max_date_diff_length}s %-${max_type_length}s %-${max_date_length}s %-${max_time_length}s\n" "Name" "Date Difference" "Type" "Date" "Time"
-  printf "%0.s-" $(seq 1 $(( max_name_length + max_date_diff_length + max_type_length + max_date_length + max_time_length + 10 )))
+  printf "%-${max_name_length}s %-${max_user_id_length}s %-${max_user_name_length}s %-${max_date_diff_length}s %-${max_type_length}s %-${max_date_length}s %-${max_time_length}s\n" "Name" "User ID" "User Name" "Date Difference" "Type" "Date" "Time"
+  printf "%0.s-" $(seq 1 $(( max_name_length + max_user_id_length + max_user_name_length + max_date_diff_length + max_type_length + max_date_length + max_time_length + 12 )))
   echo
 }
 
 # Function to print each row dynamically formatted
 print_row() {
-  printf "%-${max_name_length}s %-${max_date_diff_length}s %-${max_type_length}s %-${max_date_length}s %-${max_time_length}s\n" "$1" "$2" "$3" "$4" "$5"
+  printf "%-${max_name_length}s %-${max_user_id_length}s %-${max_user_name_length}s %-${max_date_diff_length}s %-${max_type_length}s %-${max_date_length}s %-${max_time_length}s\n" "$1" "$2" "$3" "$4" "$5" "$6" "$7"
 }
 
 # Function to fetch and process data from either team or player API
@@ -99,8 +103,8 @@ fetch_activity() {
 
   # Print header and rows
   print_header
-  echo "$activities" | jq -r '.[] | select(.name != null and .date != null) | [.name, .date_diff, .type, (.date | split("T")[0]), (.date | split("T")[1] | split(".")[0])] | @tsv' | while IFS=$'\t' read -r name date_diff type date time; do
-    print_row "$name" "$date_diff" "$type" "$date" "$time"
+  echo "$activities" | jq -r '.[] | select(.name != null and .date != null) | [.name, .user.id, .user.name, .date_diff, .type, (.date | split("T")[0]), (.date | split("T")[1] | split(".")[0])] | @tsv' | while IFS=$'\t' read -r name user_id user_name date_diff type date time; do
+    print_row "$name" "$user_id" "$user_name" "$date_diff" "$type" "$date" "$time"
   done
 }
 
